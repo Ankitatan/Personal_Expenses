@@ -38,20 +38,29 @@ This project is suitable for showcasing skills in **data analysis, data engineer
 ```
 Personal_Expenses_Analysis/
 │
-├── data_generation/
-│   └── generate_expenses.py
-│
-├── database/
-│   └── expenses.db
-│
-├── sql_queries/
-│   └── analysis_queries.sql
-│
-├── app/
-│   └── streamlit_app.py
-│
-├── requirements.txt
-└── README.md
+├── __pycache__/                  # Python cache files
+├── analytics_charts.py           # Script for creating charts/visualizations
+├── analytics_queries.py          # SQL queries or analytics scripts
+├── data_simulation.py            # Script to generate synthetic expense data
+├── Expense_tracker_project_doc.pdf  # Project documentation
+├── expenses/                     # Folder for storing processed expense files
+├── expenses                      # Possibly another data or config file (check extension)
+├── expenses_month_1.xlsx         # Monthly expense data
+├── expenses_month_2.xlsx
+├── expenses_month_3.xlsx
+├── expenses_month_4.xlsx
+├── expenses_month_5.xlsx
+├── expenses_month_6.xlsx
+├── expenses_month_7.xlsx
+├── expenses_month_8.xlsx
+├── expenses_month_9.xlsx
+├── expenses_month_10.xlsx
+├── expenses_month_11.xlsx
+├── expenses_month_12.xlsx
+├── Financial_Tracker_and_Planner.pdf  # Additional documentation/planner
+├── init_db.py                    # Script to initialize the database
+├── requirements.txt              # Python dependencies
+└── streamlit_app.py              # Streamlit dashboard application
 ```
 
 ---
