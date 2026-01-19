@@ -115,6 +115,28 @@ The Streamlit application provides:
 
 ---
 
+
+Step 4: Generate Expense Data
+python data_simulation.py
+
+
+This script creates synthetic monthly expense data and populates the database.
+
+Step 5: Perform Exploratory Data Analysis (EDA)
+
+Run the analysis scripts to see insights, trends, and charts from the dataset:
+
+python analytics_queries.py    # SQL-based analysis & summary tables
+python analytics_charts.py     # Generate visual charts and plots
+
+
+You can optionally review the results as CSV/Excel outputs in the expenses/ folder.
+
+Step 6: Run the Streamlit Dashboard
+streamlit run streamlit_app.py
+
+
+Use interactive filters to explore expenses, trends, and budget insights.
 ## How to Run the Project
 
 ### Step 1: Clone the Repository
@@ -130,13 +152,25 @@ cd Personal_Expenses_Analysis
 pip install -r requirements.txt
 ```
 
-### Step 3: Generate Expense Data
+### Step 3: Initialise the DB
 
 ```bash
-python data_generation/generate_expenses.py
+python init_db.py
 ```
 
-### Step 4: Run the Streamlit App
+### Step 4: Generate Expense Data
+
+```bash
+python data_simulation.py
+```
+
+### Step 5: Run EDA File
+
+```bash
+python EDA_Personal_Expenses.py
+```
+
+### Step 6: Run the Streamlit App
 
 ```bash
 streamlit run app/streamlit_app.py
