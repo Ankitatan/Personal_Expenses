@@ -115,8 +115,8 @@ else:
 
 
 # -------------------- TABS ------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["📊 Dashboard", "🧮 SQL Insights", "➕ Add Expense",
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+    ["📊 Dashboard", "🧮 SQL 15 Queries", "🔢 SQL Add-on Queries", "➕ Add Expense",
      "📄 Raw Data", "⬇️ Download"]
 )
 
@@ -154,63 +154,363 @@ with tab1:
 
 # ---------------- TAB 2 — SQL INSIGHTS ----------------
 with tab2:
-    st.header("🧮 SQL Analytics")
+    st.header("🧮 SQL 15 Mandatory Queries")
+
     if df.empty:
         st.warning("Add some expenses to view SQL insights.")
     else:
         conn = get_connection()
+
         queries = {
-            "Total spending by category":
-                "SELECT category, SUM(amount) AS total FROM expenses GROUP BY category",
 
-            "Spending by payment mode":
-                "SELECT payment_mode, SUM(amount) AS total FROM expenses GROUP BY payment_mode",
+            "1. What is the total amount spent in each category?": """
+                SELECT category, ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                GROUP BY category
+                ORDER BY total_spent DESC;
+            """,
 
-            "Top 5 expensive categories":
-                "SELECT category, SUM(amount) AS total FROM expenses GROUP BY category ORDER BY total DESC LIMIT 5",
+            "2. What is the total amount spent using each payment mode?": """
+                SELECT payment_mode, ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                GROUP BY payment_mode;
+            """,
 
-            "Total cashback earned":
-                "SELECT SUM(cashback) AS cashback FROM expenses",
+            "3. What is the total cashback received across all transactions?": """
+                SELECT ROUND(SUM(cashback), 2) AS total_cashback
+                FROM expenses;
+            """,
 
-            "Monthly spending":
-                "SELECT SUBSTR(date,1,7) AS month, SUM(amount) FROM expenses GROUP BY month",
+            "4. Which are the top 5 most expensive categories in terms of spending?": """
+                SELECT category, ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                GROUP BY category
+                ORDER BY total_spent DESC
+                LIMIT 5;
+            """,
 
-            "Transactions with cashback":
-                "SELECT * FROM expenses WHERE cashback > 0",
+            "5. How much was spent on transportation using different payment modes?": """
+                SELECT payment_mode, ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                WHERE category = 'Transportation'
+                GROUP BY payment_mode
+                ORDER BY total_spent DESC;
+            """,
 
-            "Highest spending category %":
-                "SELECT category, SUM(amount)*100.0 / (SELECT SUM(amount) FROM expenses) AS percentage FROM expenses GROUP BY category ORDER BY percentage DESC LIMIT 1",
+            "6. Which transactions resulted in cashback?": """
+                SELECT date, category, payment_mode, amount, cashback
+                FROM expenses
+                WHERE cashback > 0
+                ORDER BY cashback DESC;
+            """,
 
-            "Recurring expenses by description":
-                "SELECT description, COUNT(*) AS freq FROM expenses GROUP BY description HAVING freq > 2",
+            "7. What is the total spending in each month of the year?": """
+                SELECT SUBSTR(date, 1, 7) AS month,
+                       ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                GROUP BY month
+                ORDER BY month;
+            """,
 
-            "Travel-related spending":
-                "SELECT * FROM expenses WHERE category = 'Travel'",
+            "8. Which months have the highest spending in Travel, Entertainment, or Gifts?": """
+                SELECT SUBSTR(date, 1, 7) AS month,
+                       category,
+                       ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                WHERE category IN ('Travel', 'Entertainment', 'Gifts')
+                GROUP BY month, category
+                ORDER BY total_spent DESC;
+            """,
 
-            "Grocery patterns (monthly)": 
-                "SELECT SUBSTR(date,1,7) AS month, SUM(amount) FROM expenses WHERE category='Grocery' GROUP BY month",
+            "9. Are there any recurring expenses during specific months?": """
+                SELECT description,
+                       COUNT(*) AS frequency
+                FROM expenses
+                GROUP BY description
+                HAVING frequency > 2
+                ORDER BY frequency DESC;
+            """,
 
-            "Cash vs Online detailed":
-                "SELECT payment_mode, COUNT(*) AS count, SUM(amount) AS total FROM expenses GROUP BY payment_mode",
+            "10. How much cashback or rewards were earned in each month?": """
+                SELECT SUBSTR(date, 1, 7) AS month,
+                       ROUND(SUM(cashback), 2) AS total_cashback
+                FROM expenses
+                GROUP BY month
+                ORDER BY month;
+            """,
 
-            "Max transaction":
-                "SELECT * FROM expenses ORDER BY amount DESC LIMIT 1",
+            "11. How has overall spending changed over time?": """
+                WITH monthly_spend AS (
+                    SELECT SUBSTR(date, 1, 7) AS month,
+                           SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY month
+                )
+                SELECT month,
+                       total_spent,
+                       total_spent - LAG(total_spent) OVER (ORDER BY month) AS month_change
+                FROM monthly_spend;
+            """,
 
-            "Min transaction":
-                "SELECT * FROM expenses ORDER BY amount ASC LIMIT 1",
+            "12. What are the typical costs for different travel types?": """
+                SELECT description AS travel_type,
+                       ROUND(AVG(amount), 2) AS avg_cost,
+                       ROUND(MIN(amount), 2) AS min_cost,
+                       ROUND(MAX(amount), 2) AS max_cost
+                FROM expenses
+                WHERE category = 'Travel'
+                GROUP BY travel_type
+                ORDER BY avg_cost DESC;
+            """,
 
-            "Average monthly spend":
-                "SELECT AVG(monthly) FROM (SELECT SUBSTR(date,1,7) AS m, SUM(amount) AS monthly FROM expenses GROUP BY m)"
+            "13. Are there patterns in grocery spending (weekday vs weekend)?": """
+                SELECT 
+                    CASE 
+                        WHEN STRFTIME('%w', date) IN ('0','6') THEN 'Weekend'
+                        ELSE 'Weekday'
+                    END AS day_type,
+                    ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                WHERE category = 'Grocery'
+                GROUP BY day_type;
+            """,
+
+            "14. Define High and Low Priority Categories based on spending": """
+                WITH category_spend AS (
+                    SELECT category, SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY category
+                ),
+                ranked AS (
+                    SELECT category,
+                           total_spent,
+                           NTILE(3) OVER (ORDER BY total_spent DESC) AS priority_rank
+                    FROM category_spend
+                )
+                SELECT category,
+                       total_spent,
+                       CASE
+                           WHEN priority_rank = 1 THEN 'High Priority'
+                           WHEN priority_rank = 3 THEN 'Low Priority'
+                           ELSE 'Medium Priority'
+                       END AS priority_level
+                FROM ranked
+                ORDER BY total_spent DESC;
+            """,
+
+            "15. Which category contributes the highest percentage of total spending?": """
+                SELECT category,
+                       ROUND(SUM(amount) * 100.0 / 
+                            (SELECT SUM(amount) FROM expenses), 2) AS percentage_contribution
+                FROM expenses
+                GROUP BY category
+                ORDER BY percentage_contribution DESC
+                LIMIT 1;
+            """
         }
-        selected_query = st.selectbox("Select a query to run:", list(queries.keys()))
-        if st.button("Run Query"):
+
+        selected_query = st.selectbox(
+            "Select a query to run:",
+            list(queries.keys()),
+            key="query_selector_tab2"
+        )
+
+        if st.button("Run Query", key="run_query_tab2"):
             result = pd.read_sql_query(queries[selected_query], conn)
             st.dataframe(result, use_container_width=True)
+
         conn.close()
 
 
-# ---------------- TAB 3 — ADD EXPENSE ----------------
+# ---------------- TAB 3 — SQL Add-ons Queries ----------------
 with tab3:
+    st.header("🔢 SQL Add-ons Queries (Self-Created)")
+
+    if df.empty:
+        st.warning("Add some expenses to view SQL insights.")
+    else:
+        conn = get_connection()
+
+        queries = {
+
+            "1. Which day of the week has the highest average spending?": """
+                SELECT strftime('%w', date) AS day_of_week,
+                       ROUND(AVG(amount), 2) AS avg_spending
+                FROM expenses
+                GROUP BY day_of_week
+                ORDER BY avg_spending DESC;
+            """,
+
+            "2. What is the average transaction value per category?": """
+                SELECT category,
+                       ROUND(AVG(amount), 2) AS avg_transaction_value
+                FROM expenses
+                GROUP BY category
+                ORDER BY avg_transaction_value DESC;
+            """,
+
+            "3. Which categories have the highest spending variability?": """
+                SELECT category,
+                       ROUND(AVG(amount * amount) - AVG(amount) * AVG(amount), 2) AS variance
+                FROM expenses
+                GROUP BY category
+                ORDER BY variance DESC;
+            """,
+
+            "4. What percentage of transactions are Cash vs Online?": """
+                SELECT payment_mode,
+                       COUNT(*) AS transaction_count,
+                       ROUND(COUNT(*) * 100.0 /
+                            (SELECT COUNT(*) FROM expenses), 2) AS percentage
+                FROM expenses
+                GROUP BY payment_mode;
+            """,
+
+            "5. What is the median expense amount per category?": """
+                WITH ranked AS (
+                    SELECT category,
+                           amount,
+                           ROW_NUMBER() OVER (PARTITION BY category ORDER BY amount) AS rn,
+                           COUNT(*) OVER (PARTITION BY category) AS cnt
+                    FROM expenses
+                )
+                SELECT category,
+                       ROUND(AVG(amount), 2) AS median_amount
+                FROM ranked
+                WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
+                GROUP BY category;
+            """,
+
+            "6. Which week of the month contributes most to spending?": """
+                SELECT ((CAST(strftime('%d', date) AS INTEGER) - 1) / 7 + 1) AS week_of_month,
+                       ROUND(SUM(amount), 2) AS total_spent
+                FROM expenses
+                GROUP BY week_of_month
+                ORDER BY total_spent DESC;
+            """,
+
+            "7. Month-over-month spending change": """
+                WITH monthly AS (
+                    SELECT SUBSTR(date,1,7) AS month,
+                           SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY month
+                )
+                SELECT month,
+                       total_spent,
+                       total_spent - LAG(total_spent) OVER (ORDER BY month) AS change_amount
+                FROM monthly;
+            """,
+
+            "8. Months with abnormal spending spikes": """
+                WITH monthly AS (
+                    SELECT SUBSTR(date,1,7) AS month,
+                           SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY month
+                )
+                SELECT *
+                FROM monthly
+                WHERE total_spent > (SELECT AVG(total_spent) FROM monthly)
+                ORDER BY total_spent DESC;
+            """,
+
+            "9. Categories showing seasonal behavior": """
+                SELECT category,
+                       ROUND(AVG(amount * amount) - AVG(amount) * AVG(amount), 2) AS variance
+                FROM expenses
+                GROUP BY category
+                ORDER BY variance DESC;
+            """,
+
+            "10. Rolling 3-month average spending": """
+                WITH monthly AS (
+                    SELECT SUBSTR(date,1,7) AS month,
+                           SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY month
+                )
+                SELECT month,
+                       total_spent,
+                       ROUND(AVG(total_spent) OVER (
+                           ORDER BY month
+                           ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+                       ), 2) AS rolling_avg
+                FROM monthly;
+            """,
+
+            "11. Highest cashback-to-spend ratio by category": """
+                SELECT category,
+                       ROUND(SUM(cashback) * 100.0 / SUM(amount), 2) AS cashback_ratio
+                FROM expenses
+                WHERE cashback > 0
+                GROUP BY category
+                ORDER BY cashback_ratio DESC;
+            """,
+
+            "12. Cashback efficiency by payment mode": """
+                SELECT payment_mode,
+                       ROUND(SUM(cashback) * 100.0 / SUM(amount), 2) AS cashback_efficiency
+                FROM expenses
+                GROUP BY payment_mode
+                ORDER BY cashback_efficiency DESC;
+            """,
+
+            "13. Percentage of spending with zero cashback": """
+                SELECT ROUND(
+                    SUM(CASE WHEN cashback = 0 THEN amount ELSE 0 END) * 100.0 /
+                    SUM(amount), 2
+                ) AS zero_cashback_percentage
+                FROM expenses;
+            """,
+
+            "14. Transactions with cashback > 5%": """
+                SELECT date, category, amount, cashback,
+                       ROUND(cashback * 100.0 / amount, 2) AS cashback_percentage
+                FROM expenses
+                WHERE cashback * 1.0 / amount > 0.05
+                ORDER BY cashback_percentage DESC;
+            """,
+
+            "15. Categories exceeding their monthly average": """
+                WITH monthly_cat AS (
+                    SELECT SUBSTR(date,1,7) AS month,
+                           category,
+                           SUM(amount) AS total_spent
+                    FROM expenses
+                    GROUP BY month, category
+                ),
+                avg_cat AS (
+                    SELECT category,
+                           AVG(total_spent) AS avg_spent
+                    FROM monthly_cat
+                    GROUP BY category
+                )
+                SELECT m.month, m.category, m.total_spent
+                FROM monthly_cat m
+                JOIN avg_cat a
+                ON m.category = a.category
+                WHERE m.total_spent > a.avg_spent
+                ORDER BY m.month, m.total_spent DESC;
+            """
+        }
+
+        selected_query = st.selectbox(
+            "Select a self-created SQL query:",
+            list(queries.keys()),
+            key="query_selector_tab3"
+        )
+
+        if st.button("Run Query", key="run_query_tab3"):
+            result = pd.read_sql_query(queries[selected_query], conn)
+            st.dataframe(result, use_container_width=True)
+
+        conn.close()
+
+
+        
+# ---------------- TAB 4 — ADD EXPENSE ----------------
+with tab4:
     st.header("➕ Add New Expense")
     date = st.date_input("Date")
     category = st.text_input("Category")
@@ -224,8 +524,8 @@ with tab3:
         st.success("Expense added successfully!")
 
 
-# ---------------- TAB 4 — RAW DATA ----------------
-with tab4:
+# ---------------- TAB 5 — RAW DATA ----------------
+with tab5:
     st.header("📄 Raw Expense Data")
     if df.empty:
         st.warning("No expense data available.")
@@ -233,8 +533,8 @@ with tab4:
         st.dataframe(df, use_container_width=True)
 
 
-# ---------------- TAB 5 — DOWNLOAD ----------------
-with tab5:
+# ---------------- TAB 6 — DOWNLOAD ----------------
+with tab6:
     st.header("⬇️ Download Your Data")
     if df.empty:
         st.warning("Nothing to download.")
